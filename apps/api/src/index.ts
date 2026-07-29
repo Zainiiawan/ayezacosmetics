@@ -9,7 +9,7 @@ import morgan from 'morgan';
 import passport from 'passport';
 import swaggerUi from 'swagger-ui-express';
 
-import { connectDatabase } from './config/database';
+import { connectDatabaseInBackground, isDatabaseConnected } from './config/database';
 import { configurePassport } from './config/passport';
 import { configureCloudinary } from './config/cloudinary';
 import { swaggerSpec } from './config/swagger';
@@ -81,11 +81,12 @@ app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
 }));
 
 app.get('/health', (_req, res) => {
-  res.json({
+  res.status(200).json({
     status: 'ok',
+    database: isDatabaseConnected() ? 'connected' : 'disconnected',
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
-    environment: process.env.NODE_ENV,
+    environment: process.env.NODE_ENV || 'development',
   });
 });
 
@@ -110,27 +111,31 @@ app.use(`${API_PREFIX}/contact`, contactRoutes);
 app.use(notFoundHandler);
 app.use(errorHandler);
 
+const HOST = process.env.HOST || '0.0.0.0';
 const PORT = parseInt(process.env.PORT || '5001', 10);
 
-const startServer = async (): Promise<void> => {
+const startServer = (): void => {
   try {
-    await connectDatabase();
-    try {
-      configureCloudinary();
-    } catch {
-      logger.warn('Cloudinary configuration skipped/failed in this environment');
-    }
-
-    app.listen(PORT, '0.0.0.0', () => {
-      logger.info(`🚀 AYEZA COSMETICS API running on port ${PORT}`);
-      logger.info(`📖 API Docs: http://localhost:${PORT}/api/docs`);
-      logger.info(`🏥 Health: http://localhost:${PORT}/health`);
-      logger.info(`🌍 Environment: ${process.env.NODE_ENV}`);
-    });
+    configureCloudinary();
   } catch (error) {
-    logger.error('Failed to start server:', error);
-    process.exit(1);
+    const message = error instanceof Error ? error.message : String(error);
+    logger.warn(`Cloudinary configuration skipped/failed: ${message}`);
   }
+
+  // Listen first so Railway network healthchecks pass even while Mongo is connecting.
+  const server = app.listen(PORT, HOST, () => {
+    logger.info(`🚀 AYEZA COSMETICS API listening on http://${HOST}:${PORT}`);
+    logger.info(`📖 API Docs: http://${HOST}:${PORT}/api/docs`);
+    logger.info(`🏥 Health: http://${HOST}:${PORT}/health`);
+    logger.info(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
+  });
+
+  server.on('error', (error: NodeJS.ErrnoException) => {
+    logger.error(`HTTP server failed to bind on ${HOST}:${PORT}:`, error);
+    process.exit(1);
+  });
+
+  connectDatabaseInBackground();
 };
 
 process.on('SIGTERM', () => {

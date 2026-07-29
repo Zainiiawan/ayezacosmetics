@@ -25,6 +25,9 @@ FROM node:20-bookworm-slim AS runner
 
 WORKDIR /app
 ENV NODE_ENV=production
+ENV HOST=0.0.0.0
+# Railway injects PORT at runtime; default for local docker runs.
+ENV PORT=5001
 
 COPY package.json package-lock.json ./
 COPY apps/api/package.json ./apps/api/package.json
