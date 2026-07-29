@@ -9,19 +9,16 @@
   "scripts": {
     "dev": "turbo run dev",
     "build": "turbo run build",
-    "build:api": "turbo run build --filter=@ayeza/api",
+    "build:api": "node scripts/railway-api-build.cjs",
     "build:web": "turbo run build --filter=@ayeza/web",
     "start": "turbo run start",
-    "start:api": "npm run start --workspace=@ayeza/api",
+    "start:api": "node apps/api/dist/index.js",
+    "railway:build": "node scripts/railway-api-build.cjs",
+    "railway:start": "node apps/api/dist/index.js",
     "test": "turbo run test",
     "lint": "turbo run lint",
     "type-check": "turbo run type-check",
     "clean": "turbo run clean && rm -rf node_modules"
-  },
-  "dependencies": {
-    "next": "16.2.12",
-    "react": "19.2.4",
-    "react-dom": "19.2.4"
   },
   "devDependencies": {
     "turbo": "^2.3.3",

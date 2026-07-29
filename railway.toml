@@ -1,12 +1,11 @@
 [build]
-builder = "NIXPACKS"
-buildCommand = "npm install && npx turbo run build --filter=@ayeza/api"
+builder = "DOCKERFILE"
+dockerfilePath = "Dockerfile"
 
 [deploy]
-startCommand = "npm run start --workspace=@ayeza/api"
+# Matches Dockerfile CMD; explicit so dashboard overrides are less likely to break.
+startCommand = "node apps/api/dist/index.js"
 healthcheckPath = "/health"
-healthcheckTimeout = 100
+healthcheckTimeout = 120
 restartPolicyType = "ON_FAILURE"
-
-[environments.production]
-# Railway injects PORT. Set MONGODB_URI (Atlas), CORS_ORIGIN, JWT_*, EMAIL_*, etc. in the dashboard.
+restartPolicyMaxRetries = 5

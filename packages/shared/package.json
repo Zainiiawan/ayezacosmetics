@@ -14,16 +14,16 @@
     }
   },
   "scripts": {
-    "build": "tsc -p tsconfig.build.json",
+    "build": "tsc -p tsconfig.build.json && node -e \"require('fs').accessSync('dist/index.js')\"",
     "type-check": "tsc --noEmit",
     "lint": "eslint src --ext .ts",
     "clean": "rm -rf dist"
   },
-  "devDependencies": {
-    "typescript": "^5.7.2",
-    "@types/node": "^22.10.2"
-  },
   "dependencies": {
+    "typescript": "^5.7.2",
     "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2"
   }
 }
