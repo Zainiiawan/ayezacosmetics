@@ -14,6 +14,7 @@ const AUTH_NO_REFRESH_PATHS = [
 const createAxiosInstance = (): AxiosInstance => {
   const instance = axios.create({
     baseURL: config.apiUrl,
+    withCredentials: true,
     headers: {
       'Content-Type': 'application/json',
     },

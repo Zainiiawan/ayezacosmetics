@@ -43,22 +43,47 @@ app.use(helmet({
   contentSecurityPolicy: false,
 }));
 
-const corsOrigins = [
-  ...(process.env.CORS_ORIGIN || 'http://localhost:3000')
-    .split(',')
-    .map((origin) => origin.trim())
-    .filter(Boolean),
-  'http://localhost:3000',
-  'http://localhost:3003',
-  'http://localhost:3004',
-];
+// Build the allowed-origins list from the environment variable.
+// In production (Railway) only CORS_ORIGIN is used — no localhost leakage.
+// In development, localhost ports are added automatically.
+const envOrigins = (process.env.CORS_ORIGIN || '')
+  .split(',')
+  .map((o) => o.trim())
+  .filter(Boolean);
 
-app.use(cors({
-  origin: [...new Set(corsOrigins)],
+const devOrigins =
+  process.env.NODE_ENV !== 'production'
+    ? ['http://localhost:3000', 'http://localhost:3003', 'http://localhost:3004']
+    : [];
+
+const allowedOrigins = [...new Set([...envOrigins, ...devOrigins])];
+
+if (allowedOrigins.length === 0) {
+  logger.warn('CORS_ORIGIN is not set — all cross-origin requests will be blocked in production.');
+} else {
+  logger.info(`CORS allowed origins: ${allowedOrigins.join(', ')}`);
+}
+
+const corsOptions: cors.CorsOptions = {
+  origin: (requestOrigin, callback) => {
+    // Allow server-to-server / curl requests (no Origin header)
+    if (!requestOrigin) return callback(null, true);
+    if (allowedOrigins.includes(requestOrigin)) return callback(null, true);
+    logger.warn(`CORS blocked request from origin: ${requestOrigin}`);
+    callback(new Error(`CORS policy: origin '${requestOrigin}' is not allowed.`));
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-}));
+  optionsSuccessStatus: 204,
+};
+
+// Register CORS middleware — must be before every route.
+app.use(cors(corsOptions));
+
+// Explicitly handle OPTIONS preflight for all routes so that auth/rate-limit
+// middleware never has a chance to intercept and block a preflight request.
+app.options('*', cors(corsOptions));
 
 app.use(compression());
 app.use(express.json({ limit: '10mb' }));
