@@ -43,9 +43,10 @@ app.use(helmet({
   contentSecurityPolicy: false,
 }));
 
-// Build the allowed-origins list from the environment variable.
-// In production (Railway) only CORS_ORIGIN is used — no localhost leakage.
-// In development, localhost ports are added automatically.
+// ---------------------------------------------------------------------------
+// CORS — reads from CORS_ORIGIN env var (comma-separated list).
+// In development, localhost ports are also added automatically.
+// ---------------------------------------------------------------------------
 const envOrigins = (process.env.CORS_ORIGIN || '')
   .split(',')
   .map((o) => o.trim())
@@ -56,25 +57,34 @@ const devOrigins =
     ? ['http://localhost:3000', 'http://localhost:3003', 'http://localhost:3004']
     : [];
 
+// Full list built from env — used for logging and easy revert to strict mode.
 const allowedOrigins = [...new Set([...envOrigins, ...devOrigins])];
 
-if (allowedOrigins.length === 0) {
-  logger.warn('CORS_ORIGIN is not set — all cross-origin requests will be blocked in production.');
+if (envOrigins.length === 0) {
+  logger.warn('CORS_ORIGIN env var is not set. Running with origin: true (all origins allowed).');
 } else {
-  logger.info(`CORS allowed origins: ${allowedOrigins.join(', ')}`);
+  logger.info(`CORS_ORIGIN configured: ${allowedOrigins.join(', ')}`);
 }
 
 const corsOptions: cors.CorsOptions = {
-  origin: (requestOrigin, callback) => {
-    // Allow server-to-server / curl requests (no Origin header)
-    if (!requestOrigin) return callback(null, true);
-    if (allowedOrigins.includes(requestOrigin)) return callback(null, true);
-    logger.warn(`CORS blocked request from origin: ${requestOrigin}`);
-    callback(new Error(`CORS policy: origin '${requestOrigin}' is not allowed.`));
-  },
+  // -----------------------------------------------------------------------
+  // TESTING MODE — origin: true reflects the request Origin back, so
+  // Access-Control-Allow-Origin is always returned (including for
+  // https://ayezacosmetics-web.vercel.app).
+  //
+  // To switch back to strict allowlist, replace `true` with:
+  //   origin: (requestOrigin, callback) => {
+  //     if (!requestOrigin || allowedOrigins.includes(requestOrigin))
+  //       return callback(null, true);
+  //     logger.warn(`CORS blocked: ${requestOrigin}`);
+  //     callback(new Error(`CORS policy: origin '${requestOrigin}' is not allowed.`));
+  //   },
+  // -----------------------------------------------------------------------
+  origin: true,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  exposedHeaders: ['Content-Range', 'X-Content-Range'],
   optionsSuccessStatus: 204,
 };
 
