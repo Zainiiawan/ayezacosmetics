@@ -1,0 +1,12 @@
+[build]
+builder = "NIXPACKS"
+buildCommand = "npm install && npx turbo run build --filter=@ayeza/api"
+
+[deploy]
+startCommand = "npm run start --workspace=@ayeza/api"
+healthcheckPath = "/health"
+healthcheckTimeout = 100
+restartPolicyType = "ON_FAILURE"
+
+[environments.production]
+# Railway injects PORT. Set MONGODB_URI (Atlas), CORS_ORIGIN, JWT_*, EMAIL_*, etc. in the dashboard.

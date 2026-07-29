@@ -43,13 +43,18 @@ app.use(helmet({
   contentSecurityPolicy: false,
 }));
 
+const corsOrigins = [
+  ...(process.env.CORS_ORIGIN || 'http://localhost:3000')
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean),
+  'http://localhost:3000',
+  'http://localhost:3003',
+  'http://localhost:3004',
+];
+
 app.use(cors({
-  origin: [
-    process.env.CORS_ORIGIN || 'http://localhost:3000',
-    'http://localhost:3000',
-    'http://localhost:3003',
-    'http://localhost:3004',
-  ],
+  origin: [...new Set(corsOrigins)],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
@@ -116,7 +121,7 @@ const startServer = async (): Promise<void> => {
       logger.warn('Cloudinary configuration skipped/failed in this environment');
     }
 
-    app.listen(PORT, () => {
+    app.listen(PORT, '0.0.0.0', () => {
       logger.info(`🚀 AYEZA COSMETICS API running on port ${PORT}`);
       logger.info(`📖 API Docs: http://localhost:${PORT}/api/docs`);
       logger.info(`🏥 Health: http://localhost:${PORT}/health`);

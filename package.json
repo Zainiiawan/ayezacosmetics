@@ -9,8 +9,10 @@
   "scripts": {
     "dev": "turbo run dev",
     "build": "turbo run build",
+    "build:api": "turbo run build --filter=@ayeza/api",
     "build:web": "turbo run build --filter=@ayeza/web",
     "start": "turbo run start",
+    "start:api": "npm run start --workspace=@ayeza/api",
     "test": "turbo run test",
     "lint": "turbo run lint",
     "type-check": "turbo run type-check",
