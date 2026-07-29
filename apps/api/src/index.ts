@@ -8,8 +8,9 @@ import cookieParser from 'cookie-parser';
 import morgan from 'morgan';
 import passport from 'passport';
 import swaggerUi from 'swagger-ui-express';
+import path from 'path';
 
-import { connectDatabaseInBackground, isDatabaseConnected } from './config/database';
+import { connectDatabase, isDatabaseConnected } from './config/database';
 import { configurePassport } from './config/passport';
 import { configureCloudinary } from './config/cloudinary';
 import { swaggerSpec } from './config/swagger';
@@ -32,7 +33,6 @@ import mediaRoutes from './routes/media.routes';
 import paymentRoutes from './routes/payment.routes';
 import notificationRoutes from './routes/notification.routes';
 import contactRoutes from './routes/contact.routes';
-import path from 'path';
 
 const app = express();
 
@@ -114,28 +114,37 @@ app.use(errorHandler);
 const HOST = process.env.HOST || '0.0.0.0';
 const PORT = parseInt(process.env.PORT || '5001', 10);
 
-const startServer = (): void => {
+/**
+ * 1) Connect MongoDB (required)
+ * 2) Only then bind Express — Railway /health works after this
+ */
+const startServer = async (): Promise<void> => {
   try {
-    configureCloudinary();
+    await connectDatabase();
+
+    try {
+      configureCloudinary();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      logger.warn(`Cloudinary configuration skipped/failed: ${message}`);
+    }
+
+    const server = app.listen(PORT, HOST, () => {
+      logger.info('✓ Express Started');
+      logger.info(`🚀 Listening on http://${HOST}:${PORT}`);
+      logger.info(`🏥 Health: http://${HOST}:${PORT}/health`);
+      logger.info(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
+    });
+
+    server.on('error', (error: NodeJS.ErrnoException) => {
+      logger.error(`HTTP server failed to bind on ${HOST}:${PORT}:`, error);
+      process.exit(1);
+    });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    logger.warn(`Cloudinary configuration skipped/failed: ${message}`);
-  }
-
-  // Listen first so Railway network healthchecks pass even while Mongo is connecting.
-  const server = app.listen(PORT, HOST, () => {
-    logger.info(`🚀 AYEZA COSMETICS API listening on http://${HOST}:${PORT}`);
-    logger.info(`📖 API Docs: http://${HOST}:${PORT}/api/docs`);
-    logger.info(`🏥 Health: http://${HOST}:${PORT}/health`);
-    logger.info(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
-  });
-
-  server.on('error', (error: NodeJS.ErrnoException) => {
-    logger.error(`HTTP server failed to bind on ${HOST}:${PORT}:`, error);
+    logger.error(`✗ Failed to start server: ${message}`);
     process.exit(1);
-  });
-
-  connectDatabaseInBackground();
+  }
 };
 
 process.on('SIGTERM', () => {
@@ -157,6 +166,6 @@ process.on('uncaughtException', (error) => {
   process.exit(1);
 });
 
-startServer();
+void startServer();
 
 export default app;

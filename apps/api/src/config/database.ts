@@ -2,7 +2,8 @@ import mongoose from 'mongoose';
 import { logger } from '../utils/logger';
 
 const MAX_RETRIES = 5;
-const RETRY_DELAY = 5000;
+const RETRY_DELAY_MS = 3000;
+const EXPECTED_DB_NAME = 'ayezacosmetics';
 
 let listenersAttached = false;
 
@@ -11,7 +12,7 @@ function getMongoUri(): string {
 
   if (!uri) {
     throw new Error(
-      'MONGODB_URI is not defined. Set it in your environment (e.g. MongoDB Atlas connection string).'
+      'MONGODB_URI is not defined. Set it in Railway Variables or local .env'
     );
   }
 
@@ -28,14 +29,14 @@ function getMongoUri(): string {
 
   if (process.env.NODE_ENV === 'production' && isLocalhost) {
     throw new Error(
-      'MONGODB_URI points to localhost, which cannot work on Railway/production. Use a MongoDB Atlas connection string.'
+      'MONGODB_URI points to localhost — use MongoDB Atlas on Railway/production'
     );
   }
 
   return uri;
 }
 
-/** Never log credentials — strip userinfo from URI for diagnostics. */
+/** Never log credentials. */
 function redactMongoUri(uri: string): string {
   try {
     const parsed = new URL(uri);
@@ -58,7 +59,7 @@ function attachConnectionListeners(): void {
   });
 
   mongoose.connection.on('disconnected', () => {
-    logger.warn('MongoDB disconnected. Attempting to reconnect...');
+    logger.warn('MongoDB disconnected');
   });
 
   mongoose.connection.on('reconnected', () => {
@@ -70,52 +71,62 @@ export const isDatabaseConnected = (): boolean =>
   mongoose.connection.readyState === 1;
 
 /**
- * Connect to MongoDB with retries. Throws after exhausting retries.
- * Prefer {@link connectDatabaseInBackground} during HTTP server startup
- * so Railway healthchecks are not blocked.
+ * Connect to MongoDB Atlas. Retries then throws — caller must exit.
+ * Does not start Express; call this before app.listen().
  */
 export const connectDatabase = async (retries = MAX_RETRIES): Promise<void> => {
   const uri = getMongoUri();
+  logger.info(`Connecting to MongoDB... ${redactMongoUri(uri)}`);
 
   try {
     await mongoose.connect(uri, {
-      serverSelectionTimeoutMS: 15000,
-      heartbeatFrequencyMS: 2000,
+      dbName: EXPECTED_DB_NAME,
+      serverSelectionTimeoutMS: 30000,
+      connectTimeoutMS: 30000,
+      socketTimeoutMS: 45000,
+      // Prefer IPv4 — avoids some Railway/DNS SRV resolution failures
+      family: 4,
     });
 
     attachConnectionListeners();
-    logger.info('✅ MongoDB connected successfully');
-    logger.info(`📊 Database: ${mongoose.connection.name}`);
-    logger.info(`🔗 Host: ${redactMongoUri(uri)}`);
+
+    const dbName = mongoose.connection.name;
+    if (dbName !== EXPECTED_DB_NAME) {
+      logger.warn(
+        `Expected database "${EXPECTED_DB_NAME}" but connected to "${dbName}"`
+      );
+    }
+
+    logger.info('✓ MongoDB Connected');
+    logger.info(`📊 Database: ${dbName}`);
+    logger.info(`🔗 URI: ${redactMongoUri(uri)}`);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     logger.error(`MongoDB connection attempt failed: ${message}`);
 
+    const isAuthError = /auth|Authentication failed|bad auth/i.test(message);
+    if (isAuthError) {
+      logger.error(
+        '✗ MongoDB authentication failed — check MONGODB_URI username/password in Railway Variables'
+      );
+      throw new Error(
+        `Unable to connect to MongoDB (${redactMongoUri(uri)}): ${message}`
+      );
+    }
+
     if (retries > 0) {
       logger.warn(
-        `Retrying in ${RETRY_DELAY / 1000}s... (${retries} retries left)`
+        `Retrying in ${RETRY_DELAY_MS / 1000}s... (${retries} left)`
       );
-      await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY));
+      await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS));
       return connectDatabase(retries - 1);
     }
 
-    logger.error('MongoDB connection failed after all retries.');
+    logger.error('✗ MongoDB connection failed after all retries');
     throw new Error(
       `Unable to connect to MongoDB (${redactMongoUri(uri)}): ${message}`
     );
   }
-};
-
-/**
- * Non-blocking DB connect for production/Railway: logs failures, never exits the process.
- */
-export const connectDatabaseInBackground = (): void => {
-  void connectDatabase().catch((error) => {
-    const message = error instanceof Error ? error.message : String(error);
-    logger.error(
-      `MongoDB unavailable — API is up for /health but data routes will fail until DB connects: ${message}`
-    );
-  });
 };
 
 export const disconnectDatabase = async (): Promise<void> => {

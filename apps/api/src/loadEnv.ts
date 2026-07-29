@@ -1,30 +1,41 @@
 import path from 'path';
 import fs from 'fs';
+import dotenv from 'dotenv';
 
+/**
+ * Load env before any other app modules run.
+ * Railway/Vercel inject process.env — dotenv must NOT override those.
+ * Locally we load the first existing .env from known monorepo locations.
+ */
 const candidates = [
   path.resolve(process.cwd(), '.env'),
+  path.resolve(process.cwd(), 'apps/api/.env'),
   path.resolve(process.cwd(), '../.env'),
   path.resolve(process.cwd(), '../../.env'),
-  path.resolve(__dirname, '../../../../.env'),
+  // Compiled: apps/api/dist → repo root
+  path.resolve(__dirname, '../../../.env'),
+  path.resolve(__dirname, '../../.env'),
+  path.resolve(__dirname, '../.env'),
 ];
+
+let loadedFrom: string | null = null;
 
 for (const envPath of candidates) {
   if (!fs.existsSync(envPath)) continue;
-  const content = fs.readFileSync(envPath, 'utf8');
-  for (const line of content.split('\n')) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith('#')) continue;
-    const eq = trimmed.indexOf('=');
-    if (eq === -1) continue;
-    const key = trimmed.slice(0, eq).trim();
-    let value = trimmed.slice(eq + 1).trim();
-    if (
-      (value.startsWith('"') && value.endsWith('"')) ||
-      (value.startsWith("'") && value.endsWith("'"))
-    ) {
-      value = value.slice(1, -1);
-    }
-    if (process.env[key] === undefined) process.env[key] = value;
+  const result = dotenv.config({ path: envPath, override: false });
+  if (!result.error) {
+    loadedFrom = envPath;
+    break;
   }
-  break;
+}
+
+if (process.env.MONGODB_URI) {
+  // Soft signal only — never print credentials
+  process.stdout.write(
+    `[env] MONGODB_URI loaded${loadedFrom ? ` (file: ${path.basename(path.dirname(loadedFrom))}/${path.basename(loadedFrom)})` : ' (process environment)'}\n`
+  );
+} else if (process.env.NODE_ENV !== 'test') {
+  process.stderr.write(
+    '[env] WARNING: MONGODB_URI is not set. Set it in Railway Variables or local .env\n'
+  );
 }
