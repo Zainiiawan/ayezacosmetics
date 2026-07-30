@@ -69,11 +69,35 @@ const envOrigins = (process.env.CORS_ORIGIN || '')
   .map(normalizeOrigin)
   .filter(Boolean);
 
+// For any configured *.netlify.app origin, also accept that same site's
+// deploy-preview / branch-deploy subdomains (e.g. "deploy-preview-12--foo.netlify.app",
+// "agent-xxxx--foo.netlify.app") over https — Netlify mints a new subdomain for
+// every preview/branch build, so a fixed allowlist entry alone can never keep up.
+// This also transparently absorbs an http vs https typo in CORS_ORIGIN, since the
+// site name is extracted regardless of which protocol was configured.
+const netlifyPreviewPatterns: RegExp[] = envOrigins
+  .map((o) => {
+    try {
+      const hostname = new URL(o).hostname;
+      if (!hostname.endsWith('.netlify.app')) return null;
+      const siteName = hostname.replace(/\.netlify\.app$/, '').split('--').pop();
+      if (!siteName) return null;
+      const escaped = siteName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      return new RegExp(`^https:\\/\\/(?:[a-z0-9]+(?:-[a-z0-9]+)*--)?${escaped}\\.netlify\\.app$`);
+    } catch {
+      return null;
+    }
+  })
+  .filter((r): r is RegExp => r !== null);
+
 const originOption: cors.CorsOptions['origin'] = envOrigins.length > 0
   ? (incoming, callback) => {
       // Allow requests with no Origin header (curl, Postman, server-to-server)
       if (!incoming) return callback(null, true);
-      if (envOrigins.includes(normalizeOrigin(incoming))) {
+      if (
+        envOrigins.includes(normalizeOrigin(incoming)) ||
+        netlifyPreviewPatterns.some((re) => re.test(incoming))
+      ) {
         return callback(null, true);
       }
       logger.warn(`CORS blocked origin: ${incoming}`);
@@ -83,6 +107,9 @@ const originOption: cors.CorsOptions['origin'] = envOrigins.length > 0
 
 if (envOrigins.length > 0) {
   logger.info(`CORS allowlist: ${envOrigins.join(', ')}`);
+  if (netlifyPreviewPatterns.length > 0) {
+    logger.info('CORS: also accepting Netlify deploy-preview/branch subdomains of the above site(s)');
+  }
 } else {
   logger.info('CORS: origin:true — reflecting all origins (JWT-based API, no CORS_ORIGIN set)');
 }
