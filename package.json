@@ -15,6 +15,7 @@
     "start:api": "node apps/api/dist/index.js",
     "railway:build": "node scripts/railway-api-build.cjs",
     "railway:start": "node apps/api/dist/index.js",
+    "netlify:build": "turbo run build --filter=@ayeza/web",
     "test": "turbo run test",
     "lint": "turbo run lint",
     "type-check": "turbo run type-check",

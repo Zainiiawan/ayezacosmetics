@@ -44,20 +44,18 @@ app.use(helmet({
 }));
 
 // ---------------------------------------------------------------------------
-// CORS — Production-ready configuration for Vercel → Railway connection.
+// CORS — Production-ready configuration.
 //
-// Why origin: true?
-//   - Vercel generates unique preview URLs per deployment:
-//     e.g. ayezacosmetics-web-abc123.vercel.app (unpredictable hash)
-//   - origin:true tells the cors package to reflect the incoming Origin header
-//     back as Access-Control-Allow-Origin, which satisfies browsers.
-//   - This is safe because Railway is an API server, not a browser app,
-//     and authentication is handled via JWT tokens not cookies.
-//   - credentials:true + origin:true works correctly — cors reflects the
-//     exact origin string so browsers get the specific header they need.
+// Strategy:
+//   • In production (CORS_ORIGIN env set on Railway):
+//       origin is an allowlist function → only the Netlify domain is allowed.
+//       Access-Control-Allow-Origin will be the EXACT incoming origin if it
+//       matches the list, which satisfies browsers when credentials:true.
+//   • In development / no env var:
+//       origin:true reflects any incoming Origin back — safe for a JWT API
+//       where auth state lives in localStorage, not cookies.
 //
-// To lock down to specific origins in future, replace `origin: true` with
-// an allowlist function (see commented example below).
+// NEVER use '*' with credentials:true — browsers reject it.
 // ---------------------------------------------------------------------------
 
 const envOrigins = (process.env.CORS_ORIGIN || '')
@@ -65,16 +63,26 @@ const envOrigins = (process.env.CORS_ORIGIN || '')
   .map((o) => o.trim())
   .filter(Boolean);
 
+const originOption: cors.CorsOptions['origin'] = envOrigins.length > 0
+  ? (incoming, callback) => {
+      // Allow requests with no Origin header (curl, Postman, server-to-server)
+      if (!incoming) return callback(null, true);
+      if (envOrigins.includes(incoming)) {
+        return callback(null, true);
+      }
+      logger.warn(`CORS blocked origin: ${incoming}`);
+      return callback(new Error(`CORS: Origin '${incoming}' is not allowed.`), false);
+    }
+  : true; // reflect all origins when no allowlist configured (development)
+
 if (envOrigins.length > 0) {
-  logger.info(`CORS_ORIGIN from env: ${envOrigins.join(', ')}`);
+  logger.info(`CORS allowlist: ${envOrigins.join(', ')}`);
 } else {
-  logger.info('CORS: origin:true — reflecting all origins (safe for JWT-based API)');
+  logger.info('CORS: origin:true — reflecting all origins (JWT-based API, no CORS_ORIGIN set)');
 }
 
 const corsOptions: cors.CorsOptions = {
-  // Reflect the exact incoming Origin back. Required when credentials:true.
-  // DO NOT use '*' — browsers reject wildcard + credentials combination.
-  origin: true,
+  origin: originOption,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
