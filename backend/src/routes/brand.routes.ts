@@ -2,7 +2,7 @@ import express, { Request, Response } from 'express';
 import { z } from 'zod';
 import { validate } from '../middleware/validate';
 import { adminOnly } from '../middleware/auth';
-import { createBrandSchema } from '@ayeza/shared';
+import { createBrandSchema } from '../shared';
 import { Brand } from '../models/Category';
 import { NotFoundError } from '../utils/errors';
 

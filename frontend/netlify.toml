@@ -1,0 +1,20 @@
+# ==========================================
+# AYEZA COSMETICS — Netlify (Frontend Only)
+# ==========================================
+# This file lives inside frontend/ folder.
+# In Netlify Dashboard: set "Base directory" to "frontend"
+# Everything below is relative to frontend/
+
+[build]
+  command = "npm install && npm run build"
+  publish = ".next"
+
+[build.environment]
+  NODE_VERSION             = "20"
+  NPM_VERSION              = "10"
+  NEXT_PUBLIC_API_URL      = "https://ayezacosmetics-production.up.railway.app/api"
+  NEXT_PUBLIC_APP_NAME     = "AYEZA COSMETICS"
+  NEXT_PUBLIC_APP_URL      = "https://ayezacosmetics.netlify.app"
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"

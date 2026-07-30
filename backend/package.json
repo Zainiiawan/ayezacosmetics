@@ -1,5 +1,5 @@
 {
-  "name": "@ayeza/api",
+  "name": "ayeza-backend",
   "version": "1.0.0",
   "private": true,
   "scripts": {
@@ -15,7 +15,6 @@
     "seed": "tsx src/scripts/seed.ts"
   },
   "dependencies": {
-    "@ayeza/shared": "*",
     "bcryptjs": "^2.4.3",
     "cloudinary": "^1.41.0",
     "compression": "^1.7.4",

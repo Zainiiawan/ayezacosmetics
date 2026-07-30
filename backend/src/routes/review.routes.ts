@@ -2,7 +2,7 @@ import express, { Request, Response } from 'express';
 import { Types } from 'mongoose';
 import { validate } from '../middleware/validate';
 import { adminOnly, authenticate, requireEmailVerification } from '../middleware/auth';
-import { createReviewSchema, updateReviewModerationSchema } from '@ayeza/shared';
+import { createReviewSchema, updateReviewModerationSchema } from '../shared';
 import { NotFoundError, ForbiddenError, BadRequestError } from '../utils/errors';
 import { Review } from '../models/Review';
 import { Order } from '../models/Order';

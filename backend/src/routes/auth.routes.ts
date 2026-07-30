@@ -8,7 +8,7 @@ import { BadRequestError, ConflictError, ForbiddenError, NotFoundError, Unauthor
 import { generateRandomToken, hashToken, generateTokenPair, verifyRefreshToken } from '../utils/jwt';
 import { User } from '../models/User';
 import { sendVerificationEmail, sendPasswordResetEmail, sendWelcomeEmail, sendOtpEmail } from '../utils/email';
-import { loginSchema, registerSchema, forgotPasswordSchema, resetPasswordSchema, updateProfileSchema, addressSchema, changePasswordSchema, verifyOtpSchema, resendOtpSchema } from '@ayeza/shared';
+import { loginSchema, registerSchema, forgotPasswordSchema, resetPasswordSchema, updateProfileSchema, addressSchema, changePasswordSchema, verifyOtpSchema, resendOtpSchema } from '../shared';
 import crypto from 'crypto';
 import { Cart } from '../models/Cart';
 

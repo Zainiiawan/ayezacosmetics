@@ -5,17 +5,14 @@ import dotenv from 'dotenv';
 /**
  * Load env before any other app modules run.
  * Railway injects process.env — dotenv must NOT override those.
- * Locally we load the first existing .env from known monorepo locations.
+ * Locally: .env lives at backend/ root.
  */
 const candidates = [
   path.resolve(process.cwd(), '.env'),
-  path.resolve(process.cwd(), 'backend/.env'),
   path.resolve(process.cwd(), '../.env'),
-  path.resolve(process.cwd(), '../../.env'),
-  // Compiled: backend/dist → repo root
-  path.resolve(__dirname, '../../../.env'),
-  path.resolve(__dirname, '../../.env'),
+  // Compiled: dist/index.js → backend root
   path.resolve(__dirname, '../.env'),
+  path.resolve(__dirname, '../../.env'),
 ];
 
 let loadedFrom: string | null = null;

@@ -3,7 +3,7 @@ import { Types } from 'mongoose';
 import { z } from 'zod';
 import { validate } from '../middleware/validate';
 import { adminOnly } from '../middleware/auth';
-import { createCategorySchema } from '@ayeza/shared';
+import { createCategorySchema } from '../shared';
 import { Category, Subcategory } from '../models/Category';
 import { Product } from '../models/Product';
 import { NotFoundError } from '../utils/errors';

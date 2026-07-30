@@ -14,7 +14,7 @@ import {
   SHIPPING_COST,
   updateOrderStatusSchema,
   ORDER_STATUS_LABELS,
-} from '@ayeza/shared';
+} from '../shared';
 import { sendOrderConfirmationEmail, sendOrderStatusEmail } from '../utils/email';
 import { createNotification, notifyAdmins } from '../utils/notifications';
 

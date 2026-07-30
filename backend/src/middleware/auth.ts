@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import passport from 'passport';
 import { Types } from 'mongoose';
 import { UnauthorizedError, ForbiddenError } from '../utils/errors';
-import { UserRole } from '@ayeza/shared';
+import { UserRole } from '../shared';
 
 // Augment Express Request to include user
 declare global {

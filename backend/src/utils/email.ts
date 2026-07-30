@@ -1,5 +1,5 @@
 import nodemailer from 'nodemailer';
-import { ORDER_STATUS_LABELS, PAYMENT_METHOD_LABELS, STORE_CONTACT } from '@ayeza/shared';
+import { ORDER_STATUS_LABELS, PAYMENT_METHOD_LABELS, STORE_CONTACT } from '../shared';
 import { logger } from './logger';
 
 const createTransporter = () => {

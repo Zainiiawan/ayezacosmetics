@@ -1,7 +1,7 @@
 import express, { Request, Response } from 'express';
 import { authenticate, adminOnly, requireEmailVerification } from '../middleware/auth';
 import { validate } from '../middleware/validate';
-import { submitPaymentProofSchema, verifyPaymentSchema, MANUAL_PAYMENT_ACCOUNTS } from '@ayeza/shared';
+import { submitPaymentProofSchema, verifyPaymentSchema, MANUAL_PAYMENT_ACCOUNTS } from '../shared';
 import { Order } from '../models/Order';
 import { User } from '../models/User';
 import { BadRequestError, ForbiddenError, NotFoundError } from '../utils/errors';

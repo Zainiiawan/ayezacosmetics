@@ -1,7 +1,7 @@
 import express, { Request, Response } from 'express';
 import { z } from 'zod';
 import { validate } from '../middleware/validate';
-import { STORE_CONTACT } from '@ayeza/shared';
+import { STORE_CONTACT } from '../shared';
 import nodemailer from 'nodemailer';
 import { logger } from '../utils/logger';
 

@@ -1,7 +1,7 @@
 import express, { Request, Response } from 'express';
 import { validate } from '../middleware/validate';
 import { adminOnly } from '../middleware/auth';
-import { createCouponSchema, applyCouponSchema } from '@ayeza/shared';
+import { createCouponSchema, applyCouponSchema } from '../shared';
 import { Coupon } from '../models/Coupon';
 import { NotFoundError, ForbiddenError } from '../utils/errors';
 

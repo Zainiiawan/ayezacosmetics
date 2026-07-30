@@ -3,7 +3,7 @@ import { Types } from 'mongoose';
 import { z } from 'zod';
 import { validate } from '../middleware/validate';
 import { adminOnly } from '../middleware/auth';
-import { createProductSchema, productFilterSchema, updateProductSchema } from '@ayeza/shared';
+import { createProductSchema, productFilterSchema, updateProductSchema } from '../shared';
 import { BadRequestError, NotFoundError } from '../utils/errors';
 import { Product } from '../models/Product';
 

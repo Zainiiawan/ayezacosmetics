@@ -1,4 +1,4 @@
-import { HTTP_STATUS } from '@ayeza/shared';
+import { HTTP_STATUS } from '../shared';
 
 // ==========================================
 // Custom Error Classes

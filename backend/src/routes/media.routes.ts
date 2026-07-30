@@ -5,7 +5,7 @@ import fs from 'fs';
 import { v2 as cloudinary } from 'cloudinary';
 import { uploadLimiter } from '../middleware/rateLimiter';
 import { authenticate, requireEmailVerification, adminOnly } from '../middleware/auth';
-import { MAX_IMAGE_SIZE, IMAGE_FORMATS } from '@ayeza/shared';
+import { MAX_IMAGE_SIZE, IMAGE_FORMATS } from '../shared';
 import { BadRequestError } from '../utils/errors';
 import { testSmtpConnection } from '../utils/email';
 

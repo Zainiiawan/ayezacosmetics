@@ -1,6 +1,6 @@
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
-import { TOKEN_TYPES } from '@ayeza/shared';
+import { TOKEN_TYPES } from '../shared';
 
 interface TokenPayload {
   sub: string;

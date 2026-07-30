@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { Truck, CheckCircle, Clock, MapPin, ExternalLink } from 'lucide-react';
 import { Order } from '@/lib/api/orderApi';
 import { formatPrice, formatDate } from '@/lib/utils';
-import { ORDER_STATUS_LABELS, PAYMENT_METHOD_LABELS } from '@ayeza/shared';
+import { ORDER_STATUS_LABELS, PAYMENT_METHOD_LABELS } from '../../shared';
 import Button from '@/components/ui/Button';
 
 export default function OrderTrackingView({ order }: { order: Order }) {

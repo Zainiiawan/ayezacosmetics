@@ -10,7 +10,7 @@ import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 import { orderApi, Order } from '@/lib/api/orderApi';
 import { RootState } from '@/store';
-import { ORDER_STATUS_LABELS } from '@ayeza/shared';
+import { ORDER_STATUS_LABELS } from '../../shared';
 import OrderTrackingView from '@/components/orders/OrderTrackingView';
 
 function TrackOrderContent() {

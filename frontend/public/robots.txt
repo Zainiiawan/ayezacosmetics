@@ -1,7 +1,0 @@
-User-agent: *
-Allow: /
-Disallow: /admin/
-Disallow: /account/
-Disallow: /api/
-
-Sitemap: https://ayezacosmetics.com/sitemap.xml
