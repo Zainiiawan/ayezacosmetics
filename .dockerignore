@@ -16,9 +16,9 @@ logs
 uploads
 coverage
 .DS_Store
-apps/web/src
-apps/web/public
-apps/web/.next
+frontend/src
+frontend/public
+frontend/.next
 README.md
 .cursor
 agent-transcripts

@@ -7,7 +7,7 @@ const fs = require('fs');
 const path = require('path');
 
 const root = path.resolve(__dirname, '..');
-const apiIndex = path.join(root, 'apps/api/dist/index.js');
+const apiIndex = path.join(root, 'backend/dist/index.js');
 const sharedIndex = path.join(root, 'packages/shared/dist/index.js');
 
 function run(cmd) {

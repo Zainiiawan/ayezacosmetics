@@ -2,14 +2,14 @@
 # AYEZA COSMETICS — Netlify Configuration
 # ==========================================
 # Next.js 16 (App Router) + Turborepo monorepo
-# Frontend: apps/web  |  Backend: Railway (separate service)
+# Frontend: frontend/  |  Backend: Railway (separate service)
 
 [build]
   # Run from the repo root so npm workspaces / turbo resolve correctly
   base    = "."
   command = "npm install && npx turbo run build --filter=@ayeza/web"
   # @netlify/plugin-nextjs reads .next from here
-  publish = "apps/web/.next"
+  publish = "frontend/.next"
 
 [build.environment]
   NODE_VERSION             = "20"

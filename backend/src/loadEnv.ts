@@ -4,15 +4,15 @@ import dotenv from 'dotenv';
 
 /**
  * Load env before any other app modules run.
- * Railway/Vercel inject process.env — dotenv must NOT override those.
+ * Railway injects process.env — dotenv must NOT override those.
  * Locally we load the first existing .env from known monorepo locations.
  */
 const candidates = [
   path.resolve(process.cwd(), '.env'),
-  path.resolve(process.cwd(), 'apps/api/.env'),
+  path.resolve(process.cwd(), 'backend/.env'),
   path.resolve(process.cwd(), '../.env'),
   path.resolve(process.cwd(), '../../.env'),
-  // Compiled: apps/api/dist → repo root
+  // Compiled: backend/dist → repo root
   path.resolve(__dirname, '../../../.env'),
   path.resolve(__dirname, '../../.env'),
   path.resolve(__dirname, '../.env'),

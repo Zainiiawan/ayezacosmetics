@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "private": true,
   "workspaces": [
-    "apps/*",
+    "frontend",
+    "backend",
     "packages/*"
   ],
   "scripts": {
@@ -12,9 +13,9 @@
     "build:api": "node scripts/railway-api-build.cjs",
     "build:web": "turbo run build --filter=@ayeza/web",
     "start": "turbo run start",
-    "start:api": "node apps/api/dist/index.js",
+    "start:api": "node backend/dist/index.js",
     "railway:build": "node scripts/railway-api-build.cjs",
-    "railway:start": "node apps/api/dist/index.js",
+    "railway:start": "node backend/dist/index.js",
     "netlify:build": "turbo run build --filter=@ayeza/web",
     "test": "turbo run test",
     "lint": "turbo run lint",

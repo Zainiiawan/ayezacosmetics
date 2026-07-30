@@ -4,8 +4,8 @@ Luxury cosmetics e-commerce monorepo (Next.js + Express + MongoDB).
 
 ## Apps
 
-- `apps/web` — Next.js 15/16 storefront + admin
-- `apps/api` — Express REST API
+- `frontend/` — Next.js 16 storefront + admin
+- `backend/`  — Express REST API
 - `packages/shared` — shared Zod schemas & types
 
 ## Local setup
