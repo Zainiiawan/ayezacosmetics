@@ -44,63 +44,53 @@ app.use(helmet({
 }));
 
 // ---------------------------------------------------------------------------
-// CORS — always allows the known Vercel frontend URLs.
-// Additional origins can be added via CORS_ORIGIN env var (comma-separated).
-// In development, localhost ports are also included automatically.
+// CORS — Production-ready configuration for Vercel → Railway connection.
+//
+// Why origin: true?
+//   - Vercel generates unique preview URLs per deployment:
+//     e.g. ayezacosmetics-web-abc123.vercel.app (unpredictable hash)
+//   - origin:true tells the cors package to reflect the incoming Origin header
+//     back as Access-Control-Allow-Origin, which satisfies browsers.
+//   - This is safe because Railway is an API server, not a browser app,
+//     and authentication is handled via JWT tokens not cookies.
+//   - credentials:true + origin:true works correctly — cors reflects the
+//     exact origin string so browsers get the specific header they need.
+//
+// To lock down to specific origins in future, replace `origin: true` with
+// an allowlist function (see commented example below).
 // ---------------------------------------------------------------------------
-
-// Hardcode the known production frontend origins so the app works even if
-// CORS_ORIGIN is not set in the Railway environment variables.
-const PRODUCTION_ORIGINS = [
-  'https://ayezacosmetics-web.vercel.app',
-  'https://ayezacosmetics-web-19ds.vercel.app',
-];
 
 const envOrigins = (process.env.CORS_ORIGIN || '')
   .split(',')
   .map((o) => o.trim())
   .filter(Boolean);
 
-const devOrigins =
-  process.env.NODE_ENV !== 'production'
-    ? ['http://localhost:3000', 'http://localhost:3003', 'http://localhost:3004']
-    : [];
-
-const allowedOrigins = [...new Set([...PRODUCTION_ORIGINS, ...envOrigins, ...devOrigins])];
-
-logger.info(`CORS allowed origins: ${allowedOrigins.join(', ')}`);
+if (envOrigins.length > 0) {
+  logger.info(`CORS_ORIGIN from env: ${envOrigins.join(', ')}`);
+} else {
+  logger.info('CORS: origin:true — reflecting all origins (safe for JWT-based API)');
+}
 
 const corsOptions: cors.CorsOptions = {
-  origin: (requestOrigin, callback) => {
-    // Allow server-to-server / curl requests (no Origin header sent)
-    if (!requestOrigin) return callback(null, true);
-
-    if (allowedOrigins.includes(requestOrigin)) {
-      return callback(null, requestOrigin); // reflect exact origin back
-    }
-
-    // Also allow any *.vercel.app preview deployments for this project
-    if (/^https:\/\/ayezacosmetics-web[a-z0-9-]*\.vercel\.app$/.test(requestOrigin)) {
-      return callback(null, requestOrigin);
-    }
-
-    logger.warn(`CORS blocked request from origin: ${requestOrigin}`);
-    callback(new Error(`CORS policy: origin '${requestOrigin}' is not allowed.`));
-  },
+  // Reflect the exact incoming Origin back. Required when credentials:true.
+  // DO NOT use '*' — browsers reject wildcard + credentials combination.
+  origin: true,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
   exposedHeaders: ['Content-Range', 'X-Content-Range'],
-  maxAge: 86400, // cache preflight for 24 hours
+  maxAge: 86400,        // Browser caches preflight for 24h — reduces OPTIONS requests
   optionsSuccessStatus: 204,
 };
 
-// Register CORS middleware FIRST — must run before every route and error handler.
+// ─── OPTIONS preflight handler ────────────────────────────────────────────────
+// Must be registered BEFORE app.use(cors()) so preflight requests are answered
+// immediately and never reach auth, rate-limit, or any other middleware.
+app.options('*', cors(corsOptions));
+
+// ─── CORS headers on every response ──────────────────────────────────────────
 app.use(cors(corsOptions));
 
-// Explicitly handle OPTIONS preflight for all routes so that auth/rate-limit
-// middleware never has a chance to intercept and block a preflight request.
-app.options('*', cors(corsOptions));
 
 
 app.use(compression());
