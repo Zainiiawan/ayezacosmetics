@@ -1,7 +1,23 @@
 import rateLimit from 'express-rate-limit';
+import { Request, Response } from 'express';
 
 const windowMs = parseInt(process.env.RATE_LIMIT_WINDOW_MS || '900000'); // 15 min
 const maxRequests = parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '100');
+
+// Skip OPTIONS preflight requests — they must never be blocked by rate limiting
+// or the browser will report a CORS error instead of a rate-limit error.
+const skipOptions = (req: Request) => req.method === 'OPTIONS';
+
+// When a request IS rate-limited, send a JSON body and include CORS headers
+// so the browser can read the 429 response instead of treating it as a CORS error.
+const rateLimitHandler = (_req: Request, res: Response) => {
+  res.setHeader('Access-Control-Allow-Origin', res.getHeader('Access-Control-Allow-Origin') || '*');
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  res.status(429).json({
+    success: false,
+    message: 'Too many requests. Please try again later.',
+  });
+};
 
 // ==========================================
 // General Rate Limiter
@@ -11,10 +27,8 @@ export const generalLimiter = rateLimit({
   max: maxRequests,
   standardHeaders: true,
   legacyHeaders: false,
-  message: {
-    success: false,
-    message: 'Too many requests. Please try again later.',
-  },
+  skip: skipOptions,
+  handler: rateLimitHandler,
 });
 
 // ==========================================
@@ -25,11 +39,16 @@ export const authLimiter = rateLimit({
   max: 10,
   standardHeaders: true,
   legacyHeaders: false,
-  message: {
-    success: false,
-    message: 'Too many login attempts. Please try again in 15 minutes.',
-  },
   skipSuccessfulRequests: true,
+  skip: skipOptions,
+  handler: (_req: Request, res: Response) => {
+    res.setHeader('Access-Control-Allow-Origin', res.getHeader('Access-Control-Allow-Origin') || '*');
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    res.status(429).json({
+      success: false,
+      message: 'Too many login attempts. Please try again in 15 minutes.',
+    });
+  },
 });
 
 // ==========================================
@@ -40,10 +59,8 @@ export const passwordResetLimiter = rateLimit({
   max: 5,
   standardHeaders: true,
   legacyHeaders: false,
-  message: {
-    success: false,
-    message: 'Too many password reset attempts. Please try again in 1 hour.',
-  },
+  skip: skipOptions,
+  handler: rateLimitHandler,
 });
 
 // ==========================================
@@ -54,8 +71,7 @@ export const uploadLimiter = rateLimit({
   max: 50,
   standardHeaders: true,
   legacyHeaders: false,
-  message: {
-    success: false,
-    message: 'Upload limit reached. Please try again in 1 hour.',
-  },
+  skip: skipOptions,
+  handler: rateLimitHandler,
 });
+

@@ -44,9 +44,18 @@ app.use(helmet({
 }));
 
 // ---------------------------------------------------------------------------
-// CORS — reads from CORS_ORIGIN env var (comma-separated list).
-// In development, localhost ports are also added automatically.
+// CORS — always allows the known Vercel frontend URLs.
+// Additional origins can be added via CORS_ORIGIN env var (comma-separated).
+// In development, localhost ports are also included automatically.
 // ---------------------------------------------------------------------------
+
+// Hardcode the known production frontend origins so the app works even if
+// CORS_ORIGIN is not set in the Railway environment variables.
+const PRODUCTION_ORIGINS = [
+  'https://ayezacosmetics-web.vercel.app',
+  'https://ayezacosmetics-web-19ds.vercel.app',
+];
+
 const envOrigins = (process.env.CORS_ORIGIN || '')
   .split(',')
   .map((o) => o.trim())
@@ -57,43 +66,42 @@ const devOrigins =
     ? ['http://localhost:3000', 'http://localhost:3003', 'http://localhost:3004']
     : [];
 
-// Full list built from env — used for logging and easy revert to strict mode.
-const allowedOrigins = [...new Set([...envOrigins, ...devOrigins])];
+const allowedOrigins = [...new Set([...PRODUCTION_ORIGINS, ...envOrigins, ...devOrigins])];
 
-if (envOrigins.length === 0) {
-  logger.warn('CORS_ORIGIN env var is not set. Running with origin: true (all origins allowed).');
-} else {
-  logger.info(`CORS_ORIGIN configured: ${allowedOrigins.join(', ')}`);
-}
+logger.info(`CORS allowed origins: ${allowedOrigins.join(', ')}`);
 
 const corsOptions: cors.CorsOptions = {
-  // -----------------------------------------------------------------------
-  // TESTING MODE — origin: true reflects the request Origin back, so
-  // Access-Control-Allow-Origin is always returned (including for
-  // https://ayezacosmetics-web.vercel.app).
-  //
-  // To switch back to strict allowlist, replace `true` with:
-  //   origin: (requestOrigin, callback) => {
-  //     if (!requestOrigin || allowedOrigins.includes(requestOrigin))
-  //       return callback(null, true);
-  //     logger.warn(`CORS blocked: ${requestOrigin}`);
-  //     callback(new Error(`CORS policy: origin '${requestOrigin}' is not allowed.`));
-  //   },
-  // -----------------------------------------------------------------------
-  origin: true,
+  origin: (requestOrigin, callback) => {
+    // Allow server-to-server / curl requests (no Origin header sent)
+    if (!requestOrigin) return callback(null, true);
+
+    if (allowedOrigins.includes(requestOrigin)) {
+      return callback(null, requestOrigin); // reflect exact origin back
+    }
+
+    // Also allow any *.vercel.app preview deployments for this project
+    if (/^https:\/\/ayezacosmetics-web[a-z0-9-]*\.vercel\.app$/.test(requestOrigin)) {
+      return callback(null, requestOrigin);
+    }
+
+    logger.warn(`CORS blocked request from origin: ${requestOrigin}`);
+    callback(new Error(`CORS policy: origin '${requestOrigin}' is not allowed.`));
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept'],
   exposedHeaders: ['Content-Range', 'X-Content-Range'],
+  maxAge: 86400, // cache preflight for 24 hours
   optionsSuccessStatus: 204,
 };
 
-// Register CORS middleware — must be before every route.
+// Register CORS middleware FIRST — must run before every route and error handler.
 app.use(cors(corsOptions));
 
 // Explicitly handle OPTIONS preflight for all routes so that auth/rate-limit
 // middleware never has a chance to intercept and block a preflight request.
 app.options('*', cors(corsOptions));
+
 
 app.use(compression());
 app.use(express.json({ limit: '10mb' }));
