@@ -58,16 +58,22 @@ app.use(helmet({
 // NEVER use '*' with credentials:true — browsers reject it.
 // ---------------------------------------------------------------------------
 
+// Normalize so a stray trailing slash or casing difference in the env var
+// (e.g. "https://Foo.netlify.app/" vs the browser's "https://foo.netlify.app")
+// doesn't silently break the exact-match check below — this is the #1 cause
+// of "I added the origin and it still gets blocked" support requests.
+const normalizeOrigin = (o: string) => o.trim().toLowerCase().replace(/\/+$/, '');
+
 const envOrigins = (process.env.CORS_ORIGIN || '')
   .split(',')
-  .map((o) => o.trim())
+  .map(normalizeOrigin)
   .filter(Boolean);
 
 const originOption: cors.CorsOptions['origin'] = envOrigins.length > 0
   ? (incoming, callback) => {
       // Allow requests with no Origin header (curl, Postman, server-to-server)
       if (!incoming) return callback(null, true);
-      if (envOrigins.includes(incoming)) {
+      if (envOrigins.includes(normalizeOrigin(incoming))) {
         return callback(null, true);
       }
       logger.warn(`CORS blocked origin: ${incoming}`);
